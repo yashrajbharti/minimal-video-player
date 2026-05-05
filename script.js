@@ -408,6 +408,7 @@ class MinimalVideoPlayer extends HTMLElement {
         --mvp-track: rgba(0,0,0,0.15);
         --mvp-buffer: rgba(0,0,0,0.3);
         --mvp-transition: 150ms linear;
+        --mvp-controls-height: 52px;
       }
 
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -449,7 +450,10 @@ class MinimalVideoPlayer extends HTMLElement {
       /* ---- Big play button ---- */
       .big-play {
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: var(--mvp-controls-height);
         z-index: 2;
         display: flex;
         align-items: center;
@@ -624,7 +628,14 @@ class MinimalVideoPlayer extends HTMLElement {
         display: flex;
         align-items: center;
       }
-      .volume-group:hover .volume-slider-wrap { width: 72px; }
+      .volume-group:hover .volume-slider-wrap,
+      .volume-group:focus-within .volume-slider-wrap { 
+        width: 72px; 
+      }
+      
+      @media (hover: none) {
+        .volume-slider-wrap { width: 72px; }
+      }
       .volume-slider {
         width: 72px;
         height: 14px;
