@@ -25,7 +25,7 @@ class MinimalVideoPlayer extends HTMLElement {
     volumeDown: `<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="2,8 2,16 6,16 12,21 12,3 6,8"/><path d="M15.5 12c0-1.8-1-3.3-2.5-4v8c1.5-.7 2.5-2.2 2.5-4z"/></svg>`,
     volumeOff: `<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="2,8 2,16 6,16 12,21 12,3 6,8"/><line x1="16" y1="9" x2="22" y2="15" stroke="currentColor" stroke-width="2"/><line x1="22" y1="9" x2="16" y2="15" stroke="currentColor" stroke-width="2"/></svg>`,
     fullscreen: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h6v2H5v4H3V3zM15 3h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zM19 19h-4v2h6v-6h-2v4z"/></svg>`,
-    fullscreenExit: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 3v4H4v2h6V3H8zM4 15h4v4h2v-6H4v2zM20 9h-4V3h-2v6h6V7zM14 15h2v4h4v-2h-4v-4h-2v2z"/></svg>`,
+    fullscreenExit: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H8v4H4v2h6V4zM14 4h2v4h4v2h-6V4zM10 20H8v-4H4v-2h6v6zM14 20h2v-4h4v-2h-6v6z"/></svg>`,
   };
 
   /* ------------------------------------------------------------------ */
@@ -194,7 +194,9 @@ class MinimalVideoPlayer extends HTMLElement {
 
     /* fullscreen */
     this._fsBtn.addEventListener('click', () => this._toggleFS());
-    document.addEventListener('fullscreenchange', () => this._updateFSUI());
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(event => {
+      document.addEventListener(event, () => this._updateFSUI());
+    });
 
     /* auto-hide controls on mouse activity */
     this._wrapper.addEventListener('mousemove',  () => this._showControls());
@@ -291,18 +293,39 @@ class MinimalVideoPlayer extends HTMLElement {
   /* ------------------------------------------------------------------ */
   /*  Fullscreen helpers                                                 */
   /* ------------------------------------------------------------------ */
+  _isFS() {
+    const el = document.fullscreenElement || 
+               document.webkitFullscreenElement || 
+               document.mozFullScreenElement || 
+               document.msFullscreenElement;
+    return el === this || el === this._wrapper;
+  }
+
   _toggleFS() {
-    if (document.fullscreenElement === this._wrapper) {
-      document.exitFullscreen();
+    if (this._isFS()) {
+      const exit = document.exitFullscreen || 
+                   document.webkitExitFullscreen || 
+                   document.mozCancelFullScreen || 
+                   document.msExitFullscreen;
+      if (exit) exit.call(document);
     } else {
-      this._wrapper.requestFullscreen();
+      const request = this._wrapper.requestFullscreen || 
+                      this._wrapper.webkitRequestFullscreen || 
+                      this._wrapper.mozRequestFullScreen || 
+                      this._wrapper.msRequestFullscreen;
+      if (request) request.call(this._wrapper);
     }
   }
 
   _updateFSUI() {
     const I = MinimalVideoPlayer.ICONS;
-    const isFS = document.fullscreenElement === this._wrapper;
+    const isFS = this._isFS();
+    const label = isFS ? 'Exit Fullscreen' : 'Fullscreen';
+
+    this._wrapper.classList.toggle('is-fullscreen', isFS);
     this._iconFullscreen.innerHTML = isFS ? I.fullscreenExit : I.fullscreen;
+    this._fsBtn.setAttribute('aria-label', label);
+    this._fsBtn.setAttribute('title', label);
   }
 
   /* ------------------------------------------------------------------ */

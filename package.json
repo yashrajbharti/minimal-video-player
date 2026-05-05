@@ -1,6 +1,6 @@
 {
   "name": "minimal-video-player",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A brutalist, black-and-white video player built as a zero-dependency HTML Custom Element.",
   "main": "script.js",
   "module": "script.js",
