@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: 'Space Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: #fff;
+  color: #000;
+}
+
+/* ---- Header ---- */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header h1 {
+  font-size: clamp(1.6rem, 5vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #000;
+  margin-bottom: 10px;
+  border-bottom: 4px solid #000;
+  display: inline-block;
+  padding-bottom: 6px;
+}
+
+.header p {
+  font-size: 0.85rem;
+  color: #666;
+  max-width: 480px;
+  line-height: 1.6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Player container ---- */
+.player-container {
+  width: 100%;
+  max-width: 860px;
+  border: 3px solid #000;
+  background: #000;
+}
+
+/* ---- Details under player ---- */
+.player-details {
+  margin-top: 24px;
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 16px 0;
+  border-top: 2px solid #000;
+}
+
+.player-details .info h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.player-details .info span {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.player-details .shortcuts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-family: 'Space Mono', monospace;
+  color: #fff;
+  background: #000;
+  border: none;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* ---- Footer ---- */
+.footer {
+  margin-top: 48px;
+  font-size: 0.7rem;
+  color: #aaa;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-top: 1px solid #ccc;
+  padding-top: 16px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 600px) {
+  body {
+    padding: 20px 10px;
+  }
+  .player-details {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .player-details .shortcuts {
+    justify-content: flex-start;
+  }
+}

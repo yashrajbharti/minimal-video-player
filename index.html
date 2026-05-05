@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A minimal, black and white video player built with Web Components.">
+    <title>Minimal Video Player</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <h1>Minimal Video Player</h1>
+        <p>A monochrome video experience — built entirely with a single HTML custom element.</p>
+    </header>
+
+    <main class="player-container">
+        <minimal-video-player src="https://github.com/yashrajbharti/captions-on-the-fly/raw/refs/heads/main/src/TED.mp4"
+            width="100%"></minimal-video-player>
+    </main>
+
+    <div class="player-details">
+        <div class="info">
+            <h2>TED video of Clive Loseby</h2>
+            <span>TED &middot; Sample Video</span>
+        </div>
+        <div class="shortcuts">
+            <span class="kbd">Space</span>
+            <span class="kbd">← →</span>
+            <span class="kbd">↑ ↓</span>
+            <span class="kbd">F</span>
+            <span class="kbd">M</span>
+        </div>
+    </div>
+
+    <footer class="footer">
+        &lt;minimal-video-player&gt; Web Component
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
