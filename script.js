@@ -221,8 +221,8 @@ class MinimalVideoPlayer extends HTMLElement {
 
     const w = this.getAttribute('width')  || '100%';
     const h = this.getAttribute('height') || 'auto';
-    this._wrapper.style.width  = w;
-    this._wrapper.style.height = h;
+    this.style.width  = w;
+    this.style.height = h;
   }
 
   /* ------------------------------------------------------------------ */
@@ -374,9 +374,11 @@ class MinimalVideoPlayer extends HTMLElement {
   static _styles() {
     return /* css */`
       :host {
-        display: inline-block;
+        display: block;
+        width: 100%;
         contain: content;
         font-family: 'Space Mono', monospace, system-ui;
+        aspect-ratio: 16 / 9;
         --mvp-bg: #000;
         --mvp-fg: #000;
         --mvp-accent: #000;
@@ -405,10 +407,10 @@ class MinimalVideoPlayer extends HTMLElement {
       .wrapper {
         position: relative;
         width: 100%;
+        height: 100%;
         background: var(--mvp-bg);
         border-radius: 0;
         overflow: hidden;
-        aspect-ratio: 16 / 9;
         outline: none;
       }
 
@@ -440,7 +442,7 @@ class MinimalVideoPlayer extends HTMLElement {
         justify-content: center;
         color: #fff;
         border: 3px solid #fff;
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.7);
         padding: 18px;
         transition: background 0.15s linear, color 0.15s linear;
       }
