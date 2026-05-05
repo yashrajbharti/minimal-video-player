@@ -1,19 +1,44 @@
 # `<minimal-video-player>`
 
+![Minimal Video Player](/Minimal%20Video%20Player.png)
+
 A brutalist, black-and-white video player built as a zero-dependency **HTML Custom Element**.
 
-No frameworks. No build tools. No external icon fonts. Just one `<script>` tag.
+No frameworks. No build tools. No external icon fonts. Just one script.
 
 ---
 
-## Preview
+## Installation
 
+### via npm
+```bash
+npm install minimal-video-player
+```
+
+### via unpkg (CDN)
+```html
+<script src="https://unpkg.com/minimal-video-player"></script>
+```
+
+---
+
+## Usage
+
+### 1. Include the script
+If you are not using npm, you can include it directly:
+```html
+<script src="script.js"></script>
+```
+
+### 2. Use the element
 ```html
 <minimal-video-player
-  src="video.mp4"
+  src="https://example.com/video.mp4"
   width="100%"
 ></minimal-video-player>
 ```
+
+---
 
 ## Features
 
@@ -23,28 +48,10 @@ No frameworks. No build tools. No external icon fonts. Just one `<script>` tag.
 - **Full-color video** — only the player chrome is black & white
 - **Keyboard shortcuts** — Space/K (play), ←→ (seek), ↑↓ (volume), F (fullscreen), M (mute)
 - **Auto-hiding controls** — controls fade after 2.5s of inactivity during playback
-- **Responsive** — scales to any container width
+- **Responsive** — scales to any container width, maintains 16:9 aspect ratio even while loading
 - **Double-click fullscreen** — double-click the video area to toggle fullscreen
 
-## Usage
-
-### 1. Include the script
-
-```html
-<script src="script.js"></script>
-```
-
-### 2. Use the element
-
-```html
-<minimal-video-player
-  src="https://example.com/video.mp4"
-  poster="poster.jpg"
-  width="100%"
-></minimal-video-player>
-```
-
-### Attributes
+## Attributes
 
 | Attribute  | Type    | Default | Description              |
 | ---------- | ------- | ------- | ------------------------ |
@@ -56,7 +63,7 @@ No frameworks. No build tools. No external icon fonts. Just one `<script>` tag.
 | `width`    | string  | `100%`  | CSS width of the player  |
 | `height`   | string  | `auto`  | CSS height of the player |
 
-### Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Key          | Action          |
 | ------------ | --------------- |
@@ -65,16 +72,6 @@ No frameworks. No build tools. No external icon fonts. Just one `<script>` tag.
 | `↑` / `↓`   | Volume ±10%     |
 | `F`          | Toggle Fullscreen|
 | `M`          | Toggle Mute     |
-
-## File Structure
-
-```
-├── index.html   ← demo page using the component
-├── script.js    ← the custom element definition
-├── style.css    ← demo page styles (not required by the component)
-├── LICENSE
-└── README.md
-```
 
 ## License
 
