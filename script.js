@@ -188,7 +188,12 @@ class MinimalVideoPlayer extends HTMLElement {
       this._updateVolUI();
     });
     this._volBtn.addEventListener('click', () => {
-      v.muted = !v.muted;
+      if (v.muted || v.volume === 0) {
+        v.muted = false;
+        if (v.volume === 0) v.volume = 0.5;
+      } else {
+        v.muted = true;
+      }
       this._updateVolUI();
     });
 
@@ -371,12 +376,14 @@ class MinimalVideoPlayer extends HTMLElement {
         break;
       case 'ArrowUp':
         e.preventDefault();
+        v.muted = false;
         v.volume = Math.min(1, v.volume + 0.1);
         this._updateVolUI();
         break;
       case 'ArrowDown':
         e.preventDefault();
         v.volume = Math.max(0, v.volume - 0.1);
+        if (v.volume === 0) v.muted = true;
         this._updateVolUI();
         break;
       case 'f':
@@ -385,7 +392,12 @@ class MinimalVideoPlayer extends HTMLElement {
         break;
       case 'm':
         e.preventDefault();
-        v.muted = !v.muted;
+        if (v.muted || v.volume === 0) {
+          v.muted = false;
+          if (v.volume === 0) v.volume = 0.5;
+        } else {
+          v.muted = true;
+        }
         this._updateVolUI();
         break;
     }
@@ -572,6 +584,7 @@ class MinimalVideoPlayer extends HTMLElement {
         background: transparent;
         position: relative;
         z-index: 3;
+        font-size: 16px; /* Prevents iOS auto-zoom on interaction */
       }
       input[type=range]::-webkit-slider-runnable-track {
         height: 4px;
@@ -628,13 +641,15 @@ class MinimalVideoPlayer extends HTMLElement {
         display: flex;
         align-items: center;
       }
-      .volume-group:hover .volume-slider-wrap,
-      .volume-group:focus-within .volume-slider-wrap { 
-        width: 72px; 
+      @media (hover: hover) {
+        .volume-group:hover .volume-slider-wrap,
+        .volume-group:focus-within .volume-slider-wrap { 
+          width: 72px; 
+        }
       }
       
       @media (hover: none) {
-        .volume-slider-wrap { width: 72px; }
+        .volume-slider-wrap { width: 60px; }
       }
       .volume-slider {
         width: 72px;
