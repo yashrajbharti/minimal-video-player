@@ -1,6 +1,6 @@
 {
   "name": "minimal-video-player",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A brutalist, black-and-white video player built as a zero-dependency HTML Custom Element.",
   "main": "script.js",
   "module": "script.js",
@@ -20,7 +20,7 @@
     "minimal",
     "html5-video"
   ],
-  "author": "Yashraj Bharti",
+  "author": "Yash Raj Bharti",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/yashrajbharti/minimal-video-player/issues"
@@ -28,5 +28,5 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
-  "homepage": "https://github.com/yashrajbharti/minimal-video-player#readme"
+  "homepage": "https://yashrajbharti.github.io/minimal-video-player/"
 }
