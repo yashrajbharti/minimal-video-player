@@ -61,8 +61,15 @@ class MinimalVideoPlayer extends HTMLElement {
   /*  Attribute changed callback                                         */
   /* ------------------------------------------------------------------ */
   attributeChangedCallback(name, oldVal, newVal) {
-    if (!this.shadowRoot.querySelector('video')) return;
+    if (!this.shadowRoot.querySelector('video') || oldVal === newVal) return;
     this._applyAttributes();
+    
+    // If source changed, reset playback state and UI
+    if (name === 'src') {
+      this._video.currentTime = 0;
+      this._onPlayState(false);
+      this._onTimeUpdate();
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -270,7 +277,7 @@ class MinimalVideoPlayer extends HTMLElement {
   }
 
   _fmt(sec) {
-    if (!sec || isNaN(sec)) return '0:00';
+    if (sec === null || sec === undefined || isNaN(sec) || !isFinite(sec)) return '0:00';
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
@@ -414,16 +421,31 @@ class MinimalVideoPlayer extends HTMLElement {
         contain: content;
         font-family: 'Space Mono', monospace, system-ui;
         aspect-ratio: 16 / 9;
-        --mvp-bg: #000;
+
+        /* ---- Design Tokens ---- */
+        --mvp-bg: #fff;
         --mvp-fg: #000;
         --mvp-accent: #000;
-        --mvp-track: rgba(0,0,0,0.15);
-        --mvp-buffer: rgba(0,0,0,0.3);
+        --mvp-video-bg: #000;
+        --mvp-controls-bg: #fff;
+        --mvp-controls-bg-translucent: #ffffffdb;
+        --mvp-overlay-bg: rgba(0, 0, 0, 0.5);
+        --mvp-track: rgba(0, 0, 0, 0.15);
+        --mvp-buffer: rgba(0, 0, 0, 0.3);
+        --mvp-border-color: #000;
+        --mvp-border-width: 2px;
         --mvp-transition: 150ms linear;
         --mvp-controls-height: 52px;
+        --mvp-focus-outline: 3px solid #000;
       }
 
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      /* ---- Accessibility: Focus states ---- */
+      :focus-visible {
+        outline: var(--mvp-focus-outline);
+        outline-offset: -3px;
+      }
 
       /* ---- Icon spans ---- */
       .icon {
@@ -432,7 +454,7 @@ class MinimalVideoPlayer extends HTMLElement {
         justify-content: center;
         width: 24px;
         height: 24px;
-        color: #000;
+        color: var(--mvp-fg);
         user-select: none;
       }
       .icon svg {
@@ -444,7 +466,7 @@ class MinimalVideoPlayer extends HTMLElement {
         position: relative;
         width: 100%;
         height: 100%;
-        background: var(--mvp-bg);
+        background: var(--mvp-video-bg);
         border-radius: 0;
         overflow: hidden;
         outline: none;
@@ -456,7 +478,7 @@ class MinimalVideoPlayer extends HTMLElement {
         width: 100%;
         height: 100%;
         object-fit: contain;
-        background: #000;
+        background: var(--mvp-video-bg);
       }
 
       /* ---- Big play button ---- */
@@ -470,7 +492,7 @@ class MinimalVideoPlayer extends HTMLElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0,0,0,0.5);
+        background: var(--mvp-overlay-bg);
         border: none;
         cursor: pointer;
         transition: opacity 0.3s linear;
@@ -493,6 +515,10 @@ class MinimalVideoPlayer extends HTMLElement {
         background: #fff;
         color: #000;
       }
+      .big-play:focus-visible .big-play-icon {
+        outline: 3px solid #fff;
+        outline-offset: 4px;
+      }
 
       /* ---- Controls bar ---- */
       .controls {
@@ -505,8 +531,8 @@ class MinimalVideoPlayer extends HTMLElement {
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
-        background: #fff;
-        border-top: 2px solid #000;
+        background: var(--mvp-controls-bg-translucent);
+        border-top: var(--mvp-border-width) solid var(--mvp-border-color);
         opacity: 0;
         transition: opacity var(--mvp-transition);
         pointer-events: none;
@@ -519,7 +545,7 @@ class MinimalVideoPlayer extends HTMLElement {
       /* ---- Buttons ---- */
       .btn {
         background: none;
-        border: 2px solid transparent;
+        border: var(--mvp-border-width) solid transparent;
         cursor: pointer;
         padding: 4px;
         display: flex;
@@ -529,20 +555,20 @@ class MinimalVideoPlayer extends HTMLElement {
         transition: border-color var(--mvp-transition), background var(--mvp-transition);
       }
       .btn:hover {
-        border-color: #000;
+        border-color: var(--mvp-border-color);
       }
       .btn:active {
-        background: #000;
+        background: var(--mvp-fg);
       }
       .btn:active .icon {
-        color: #fff;
+        color: var(--mvp-bg);
       }
 
       /* ---- Time labels ---- */
       .time {
         font-family: 'Space Mono', monospace;
         font-size: 11px;
-        color: #000;
+        color: var(--mvp-fg);
         font-variant-numeric: tabular-nums;
         letter-spacing: 0.05em;
         min-width: 38px;
@@ -584,7 +610,7 @@ class MinimalVideoPlayer extends HTMLElement {
         background: transparent;
         position: relative;
         z-index: 3;
-        font-size: 16px; /* Prevents iOS auto-zoom on interaction */
+        font-size: 16px;
       }
       input[type=range]::-webkit-slider-runnable-track {
         height: 4px;
@@ -599,7 +625,7 @@ class MinimalVideoPlayer extends HTMLElement {
         height: 14px;
         border-radius: 0;
         background: var(--mvp-accent);
-        border: 2px solid #000;
+        border: var(--mvp-border-width) solid var(--mvp-border-color);
         margin-top: -5px;
         cursor: pointer;
         opacity: 0;
@@ -619,7 +645,7 @@ class MinimalVideoPlayer extends HTMLElement {
         height: 14px;
         border-radius: 0;
         background: var(--mvp-accent);
-        border: 2px solid #000;
+        border: var(--mvp-border-width) solid var(--mvp-border-color);
         cursor: pointer;
         opacity: 0;
         transition: opacity 0.1s linear;
@@ -668,7 +694,7 @@ class MinimalVideoPlayer extends HTMLElement {
         height: 12px;
         border-radius: 0;
         background: var(--mvp-accent);
-        border: 2px solid #fff;
+        border: var(--mvp-border-width) solid var(--mvp-controls-bg);
         margin-top: -4px;
         cursor: pointer;
       }
@@ -683,7 +709,7 @@ class MinimalVideoPlayer extends HTMLElement {
         height: 12px;
         border-radius: 0;
         background: var(--mvp-accent);
-        border: 2px solid #fff;
+        border: var(--mvp-border-width) solid var(--mvp-controls-bg);
         cursor: pointer;
       }
       .volume-fill {
@@ -701,6 +727,7 @@ class MinimalVideoPlayer extends HTMLElement {
 
       /* ---- Fullscreen ---- */
       .wrapper:fullscreen video { height: 100vh; }
+      .wrapper.is-fullscreen { border: none; }
     `;
   }
 }
