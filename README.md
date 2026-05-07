@@ -11,6 +11,8 @@ No frameworks. No build tools. No external icon fonts. Just one script.
 ## Installation
 
 ### via npm
+[![npm version](https://img.shields.io/npm/v/minimal-video-player.svg)](https://www.npmjs.com/package/minimal-video-player)
+
 ```bash
 npm install minimal-video-player
 ```
