@@ -68,7 +68,13 @@ class MinimalVideoPlayer extends HTMLElement {
     if (name === 'src') {
       this._video.currentTime = 0;
       this._onPlayState(false);
-      this._onTimeUpdate();
+      
+      // Explicitly reset UI elements immediately
+      this._currentTime.textContent = '0:00';
+      this._duration.textContent = '0:00';
+      this._seek.value = 0;
+      this._seekFill.style.width = '0%';
+      this._seekBuffer.style.width = '0%';
     }
   }
 
@@ -253,6 +259,9 @@ class MinimalVideoPlayer extends HTMLElement {
     this._bigPlayIcon.innerHTML   = playing ? I.pause : I.play;
     this._bigPlay.style.opacity       = playing ? '0' : '';
     this._bigPlay.style.pointerEvents = playing ? 'none' : '';
+    
+    this._wrapper.classList.toggle('is-playing', playing);
+
     if (playing) this._scheduleHide(); else this._showControls();
   }
 
@@ -531,11 +540,14 @@ class MinimalVideoPlayer extends HTMLElement {
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
-        background: var(--mvp-controls-bg-translucent);
+        background: var(--mvp-controls-bg);
         border-top: var(--mvp-border-width) solid var(--mvp-border-color);
         opacity: 0;
-        transition: opacity var(--mvp-transition);
+        transition: opacity var(--mvp-transition), background var(--mvp-transition);
         pointer-events: none;
+      }
+      .wrapper.is-playing .controls {
+        background: var(--mvp-controls-bg-translucent);
       }
       .controls.visible {
         opacity: 1;
