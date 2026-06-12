@@ -26,13 +26,14 @@ class MinimalVideoPlayer extends HTMLElement {
     volumeOff: `<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="2,8 2,16 6,16 12,21 12,3 6,8"/><line x1="16" y1="9" x2="22" y2="15" stroke="currentColor" stroke-width="2"/><line x1="22" y1="9" x2="16" y2="15" stroke="currentColor" stroke-width="2"/></svg>`,
     fullscreen: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h6v2H5v4H3V3zM15 3h6v6h-2V5h-4V3zM3 15h2v4h4v2H3v-6zM19 19h-4v2h6v-6h-2v4z"/></svg>`,
     fullscreenExit: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H8v4H4v2h6V4zM14 4h2v4h4v2h-6V4zM10 20H8v-4H4v-2h6v6zM14 20h2v-4h4v-2h-6v6z"/></svg>`,
+    cc: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm2 2v12h16V6H4zm3 3h2.5c.3 0 .5.2.5.5v1H8.5V10H7v4h1.5v-.5H10v1c0 .3-.2.5-.5.5H7c-.6 0-1-.4-1-1v-4c0-.6.4-1 1-1zm6 0h2.5c.3 0 .5.2.5.5v1h-1.5V10H13v4h1.5v-.5H16v1c0 .3-.2.5-.5.5H13c-.6 0-1-.4-1-1v-4c0-.6.4-1 1-1z"/></svg>`,
   };
 
   /* ------------------------------------------------------------------ */
   /*  Observed attributes                                                */
   /* ------------------------------------------------------------------ */
   static get observedAttributes() {
-    return ['src', 'poster', 'autoplay', 'muted', 'loop', 'width', 'height'];
+    return ['src', 'poster', 'autoplay', 'muted', 'loop', 'width', 'height', 'subtitle'];
   }
 
   /* ------------------------------------------------------------------ */
@@ -44,6 +45,8 @@ class MinimalVideoPlayer extends HTMLElement {
     this._isUserSeeking = false;
     this._controlsTimeout = null;
     this._controlsVisible = true;
+    this._subtitleCues = [];
+    this._subtitlesActive = false;
   }
 
   /* ------------------------------------------------------------------ */
@@ -75,6 +78,13 @@ class MinimalVideoPlayer extends HTMLElement {
       this._seek.value = 0;
       this._seekFill.style.width = '0%';
       this._seekBuffer.style.width = '0%';
+    }
+
+    // If subtitle changed, reload cues
+    if (name === 'subtitle') {
+      this._subtitleCues = [];
+      this._captionOverlay.innerHTML = '';
+      if (newVal) this._loadSubtitles(newVal);
     }
   }
 
@@ -120,10 +130,17 @@ class MinimalVideoPlayer extends HTMLElement {
             </div>
           </div>
 
+          <button class="btn cc-btn" aria-label="Toggle Captions">
+            <span class="icon icon-cc">${I.cc}</span>
+          </button>
+
           <button class="btn fullscreen-btn" aria-label="Fullscreen">
             <span class="icon icon-fullscreen">${I.fullscreen}</span>
           </button>
         </div>
+
+        <!-- Caption overlay -->
+        <div class="caption-overlay" aria-live="polite"></div>
       </div>
     `;
   }
@@ -151,6 +168,9 @@ class MinimalVideoPlayer extends HTMLElement {
     this._volFill         = $('.volume-fill');
     this._fsBtn           = $('.fullscreen-btn');
     this._iconFullscreen  = $('.icon-fullscreen');
+    this._ccBtn           = $('.cc-btn');
+    this._iconCC          = $('.icon-cc');
+    this._captionOverlay  = $('.caption-overlay');
     this._seekContainer   = $('.seek-container');
     this._volumeGroup     = $('.volume-group');
   }
@@ -216,6 +236,9 @@ class MinimalVideoPlayer extends HTMLElement {
       document.addEventListener(event, () => this._updateFSUI());
     });
 
+    /* captions toggle */
+    this._ccBtn.addEventListener('click', () => this._toggleSubtitles());
+
     /* auto-hide controls on mouse activity */
     this._wrapper.addEventListener('mousemove',  () => this._showControls());
     this._wrapper.addEventListener('mouseleave', () => this._scheduleHide());
@@ -243,6 +266,22 @@ class MinimalVideoPlayer extends HTMLElement {
     const h = this.getAttribute('height') || 'auto';
     this.style.width  = w;
     this.style.height = h;
+
+    const sub = this.getAttribute('subtitle');
+    if (sub) {
+      this._ccBtn.style.display = '';
+      if (this._subtitleCues.length === 0) {
+        this._loadSubtitles(sub);
+        this._subtitlesActive = true;
+        this._iconCC.innerHTML = MinimalVideoPlayer.ICONS.cc;
+        this._ccBtn.classList.add('cc-active');
+        this._ccBtn.setAttribute('aria-label', 'Disable Captions');
+      }
+    } else {
+      this._ccBtn.style.display = 'none';
+      this._subtitlesActive = false;
+      this._captionOverlay.innerHTML = '';
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -275,6 +314,7 @@ class MinimalVideoPlayer extends HTMLElement {
     this._seek.value = Math.round(pct * 1000);
     this._seekFill.style.width = `${pct * 100}%`;
     this._currentTime.textContent = this._fmt(v.currentTime);
+    this._renderCaption(v.currentTime);
   }
 
   _updateBuffer() {
@@ -372,6 +412,73 @@ class MinimalVideoPlayer extends HTMLElement {
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Subtitle / Captions                                                */
+  /* ------------------------------------------------------------------ */
+
+  /** Parse SRT timestamp (00:01:23,456) to seconds */
+  _parseSrtTime(str) {
+    const [h, m, rest] = str.split(':');
+    const [s, ms] = rest.split(',');
+    return (+h) * 3600 + (+m) * 60 + (+s) + (+ms) / 1000;
+  }
+
+  /** Parse an SRT string into an array of { start, end, text } */
+  _parseSrt(srt) {
+    const cues = [];
+    const blocks = srt.trim().replace(/\r\n/g, '\n').split('\n\n');
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      if (lines.length < 3) continue;
+      const timeMatch = lines[1].match(
+        /(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/
+      );
+      if (!timeMatch) continue;
+      cues.push({
+        start: this._parseSrtTime(timeMatch[1]),
+        end:   this._parseSrtTime(timeMatch[2]),
+        text:  lines.slice(2).join('\n'),
+      });
+    }
+    return cues;
+  }
+
+  /** Fetch and parse the SRT file */
+  async _loadSubtitles(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const text = await res.text();
+      this._subtitleCues = this._parseSrt(text);
+    } catch { /* silently fail */ }
+  }
+
+  /** Render the active caption cue for the given time */
+  _renderCaption(time) {
+    if (!this._subtitlesActive || !this._subtitleCues.length) {
+      this._captionOverlay.innerHTML = '';
+      return;
+    }
+    const cue = this._subtitleCues.find(c => time >= c.start && time < c.end);
+    if (cue) {
+      const escaped = cue.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      this._captionOverlay.innerHTML = `<span>${escaped}</span>`;
+    } else {
+      this._captionOverlay.innerHTML = '';
+    }
+  }
+
+  /** Toggle captions on/off */
+  _toggleSubtitles() {
+    this._subtitlesActive = !this._subtitlesActive;
+    const I = MinimalVideoPlayer.ICONS;
+    this._iconCC.innerHTML = I.cc;
+    this._ccBtn.classList.toggle('cc-active', this._subtitlesActive);
+    this._ccBtn.setAttribute('aria-label', this._subtitlesActive ? 'Disable Captions' : 'Enable Captions');
+    if (!this._subtitlesActive) this._captionOverlay.innerHTML = '';
+    else this._renderCaption(this._video.currentTime);
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Keyboard shortcuts                                                 */
   /* ------------------------------------------------------------------ */
   _onKey(e) {
@@ -406,6 +513,10 @@ class MinimalVideoPlayer extends HTMLElement {
         e.preventDefault();
         this._toggleFS();
         break;
+      case 'c':
+        e.preventDefault();
+        this._toggleSubtitles();
+        break;
       case 'm':
         e.preventDefault();
         if (v.muted || v.volume === 0) {
@@ -424,6 +535,8 @@ class MinimalVideoPlayer extends HTMLElement {
   /* ------------------------------------------------------------------ */
   static _styles() {
     return /* css */`
+      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+
       :host {
         display: block;
         width: 100%;
@@ -687,7 +800,7 @@ class MinimalVideoPlayer extends HTMLElement {
       }
       
       @media (hover: none) {
-        .volume-slider-wrap { width: 60px; }
+        .volume-slider-wrap { display: none; }
       }
       .volume-slider {
         width: 72px;
@@ -737,9 +850,47 @@ class MinimalVideoPlayer extends HTMLElement {
         width: 100%;
       }
 
+      /* ---- Caption overlay ---- */
+      .caption-overlay {
+        position: absolute;
+        bottom: calc(var(--mvp-controls-height) + 12px);
+        left: 0;
+        right: 0;
+        z-index: 4;
+        display: flex;
+        justify-content: center;
+        pointer-events: none;
+        white-space: pre-line;
+        word-break: break-word;
+        transition: bottom 0.15s linear;
+      }
+      .caption-overlay:empty { display: none; }
+      .caption-overlay span {
+        display: inline-block;
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        font-family: 'Roboto', sans-serif;
+        font-size: clamp(12px, 2.2vw, 18px);
+        line-height: 1.5;
+        padding: 4px 12px;
+        max-width: 85%;
+      }
+
+      /* ---- CC button active state ---- */
+      .cc-btn.cc-active {
+        background: var(--mvp-fg);
+      }
+      .cc-btn.cc-active .icon {
+        color: var(--mvp-bg);
+      }
+
       /* ---- Fullscreen ---- */
       .wrapper:fullscreen video { height: 100vh; }
       .wrapper.is-fullscreen { border: none; }
+      .wrapper:fullscreen .caption-overlay {
+        font-size: clamp(16px, 2.5vw, 28px);
+        bottom: calc(var(--mvp-controls-height) + 24px);
+      }
     `;
   }
 }
