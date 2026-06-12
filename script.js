@@ -47,6 +47,8 @@ class MinimalVideoPlayer extends HTMLElement {
     this._controlsVisible = true;
     this._subtitleCues = [];
     this._subtitlesActive = false;
+    this._speedSteps = [1, 1.5, 2, 0.5];
+    this._speedIndex = 0;
   }
 
   /* ------------------------------------------------------------------ */
@@ -134,6 +136,8 @@ class MinimalVideoPlayer extends HTMLElement {
             <span class="icon icon-cc">${I.cc}</span>
           </button>
 
+          <button class="btn speed-btn" aria-label="Playback Speed">1x</button>
+
           <button class="btn fullscreen-btn" aria-label="Fullscreen">
             <span class="icon icon-fullscreen">${I.fullscreen}</span>
           </button>
@@ -171,6 +175,7 @@ class MinimalVideoPlayer extends HTMLElement {
     this._ccBtn           = $('.cc-btn');
     this._iconCC          = $('.icon-cc');
     this._captionOverlay  = $('.caption-overlay');
+    this._speedBtn        = $('.speed-btn');
     this._seekContainer   = $('.seek-container');
     this._volumeGroup     = $('.volume-group');
   }
@@ -238,6 +243,9 @@ class MinimalVideoPlayer extends HTMLElement {
 
     /* captions toggle */
     this._ccBtn.addEventListener('click', () => this._toggleSubtitles());
+
+    /* playback speed */
+    this._speedBtn.addEventListener('click', () => this._cycleSpeed());
 
     /* auto-hide controls on mouse activity */
     this._wrapper.addEventListener('mousemove',  () => this._showControls());
@@ -476,6 +484,14 @@ class MinimalVideoPlayer extends HTMLElement {
     this._ccBtn.setAttribute('aria-label', this._subtitlesActive ? 'Disable Captions' : 'Enable Captions');
     if (!this._subtitlesActive) this._captionOverlay.innerHTML = '';
     else this._renderCaption(this._video.currentTime);
+  }
+
+  /** Cycle playback speed: 1x → 1.5x → 2x → 0.5x → 1x */
+  _cycleSpeed() {
+    this._speedIndex = (this._speedIndex + 1) % this._speedSteps.length;
+    const speed = this._speedSteps[this._speedIndex];
+    this._video.playbackRate = speed;
+    this._speedBtn.textContent = `${speed}x`;
   }
 
   /* ------------------------------------------------------------------ */
@@ -882,6 +898,18 @@ class MinimalVideoPlayer extends HTMLElement {
       }
       .cc-btn.cc-active .icon {
         color: var(--mvp-bg);
+      }
+
+      /* ---- Speed button ---- */
+      .speed-btn {
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--mvp-fg);
+        letter-spacing: 0.03em;
+        min-width: 32px;
+        text-align: center;
+        user-select: none;
       }
 
       /* ---- Fullscreen ---- */
