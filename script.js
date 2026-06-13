@@ -453,7 +453,7 @@ class MinimalVideoPlayer extends HTMLElement {
   /** Fetch and parse the SRT file */
   async _loadSubtitles(url) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) return;
       const text = await res.text();
       this._subtitleCues = this._parseSrt(text);

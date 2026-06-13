@@ -36,6 +36,7 @@ If you are not using npm, you can include it directly:
 ```html
 <minimal-video-player
   src="https://example.com/video.mp4"
+  subtitle="captions.srt"
   width="100%"
 ></minimal-video-player>
 ```
@@ -48,22 +49,25 @@ If you are not using npm, you can include it directly:
 - **Zero dependencies** — all icons are inline SVGs, no external fonts or libraries
 - **Brutalist design** — sharp corners, hard borders, monochrome UI
 - **Full-color video** — only the player chrome is black & white
-- **Keyboard shortcuts** — Space/K (play), ←→ (seek), ↑↓ (volume), F (fullscreen), M (mute)
+- **Subtitles & Captions** — native SRT support via the `subtitle` attribute, easily toggled on/off
+- **Playback Speed** — adjust speed dynamically (0.5x, 1x, 1.5x, 2x) directly from the controls
+- **Keyboard shortcuts** — Space/K (play), ←→ (seek), ↑↓ (volume), F (fullscreen), M (mute), C (captions)
 - **Auto-hiding controls** — controls fade after 2.5s of inactivity during playback
 - **Responsive** — scales to any container width, maintains 16:9 aspect ratio even while loading
 - **Double-click fullscreen** — double-click the video area to toggle fullscreen
 
 ## Attributes
 
-| Attribute  | Type    | Default | Description              |
-| ---------- | ------- | ------- | ------------------------ |
-| `src`      | string  | —       | Video source URL         |
-| `poster`   | string  | —       | Poster image URL         |
-| `autoplay` | boolean | false   | Auto-play on load        |
-| `muted`    | boolean | false   | Start muted              |
-| `loop`     | boolean | false   | Loop playback            |
-| `width`    | string  | `100%`  | CSS width of the player  |
-| `height`   | string  | `auto`  | CSS height of the player |
+| Attribute  | Type    | Default | Description                            |
+| ---------- | ------- | ------- | -------------------------------------- |
+| `src`      | string  | —       | Video source URL                       |
+| `poster`   | string  | —       | Poster image URL                       |
+| `subtitle` | string  | —       | Path/URL to SubRip (.srt) subtitle file|
+| `autoplay` | boolean | false   | Auto-play on load                      |
+| `muted`    | boolean | false   | Start muted                            |
+| `loop`     | boolean | false   | Loop playback                          |
+| `width`    | string  | `100%`  | CSS width of the player                |
+| `height`   | string  | `auto`  | CSS height of the player               |
 
 ## Keyboard Shortcuts
 
@@ -74,6 +78,7 @@ If you are not using npm, you can include it directly:
 | `↑` / `↓`   | Volume ±10%     |
 | `F`          | Toggle Fullscreen|
 | `M`          | Toggle Mute     |
+| `C`          | Toggle Captions |
 
 ## License
 
