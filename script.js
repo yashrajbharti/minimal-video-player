@@ -700,6 +700,7 @@ class MinimalVideoPlayer extends HTMLElement {
       }
       .btn:active {
         background: var(--mvp-fg);
+        color: var(--mvp-bg);
       }
       .btn:active .icon {
         color: var(--mvp-bg);
@@ -907,9 +908,11 @@ class MinimalVideoPlayer extends HTMLElement {
         font-weight: 700;
         color: var(--mvp-fg);
         letter-spacing: 0.03em;
-        min-width: 32px;
         text-align: center;
         user-select: none;
+        width: 36px;
+        height: 36px;
+        padding: 0;
       }
 
       /* ---- Fullscreen ---- */
