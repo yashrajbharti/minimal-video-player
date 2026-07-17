@@ -49,6 +49,7 @@ If you are not using npm, you can include it directly:
 - **Zero dependencies** — all icons are inline SVGs, no external fonts or libraries
 - **Brutalist design** — sharp corners, hard borders, monochrome UI
 - **Full-color video** — only the player chrome is black & white
+- **200% Volume Boost** — audio amplification via Web Audio API, featuring a non-linear slider, sticky 100% snapping, dynamic neon red gradient visual feedback, and automatic CORS fallback
 - **Subtitles & Captions** — native SRT support via the `subtitle` attribute, easily toggled on/off
 - **Playback Speed** — adjust speed dynamically (0.5x, 1x, 1.5x, 2x) directly from the controls
 - **Keyboard shortcuts** — Space/K (play), ←→ (seek), ↑↓ (volume), F (fullscreen), M (mute), C (captions)

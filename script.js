@@ -49,6 +49,8 @@ class MinimalVideoPlayer extends HTMLElement {
     this._subtitlesActive = false;
     this._speedSteps = [1, 1.5, 2, 0.5];
     this._speedIndex = 0;
+    this._volumeLevel = 1.0;
+    this._corsBlocked = false;
   }
 
   /* ------------------------------------------------------------------ */
@@ -59,6 +61,8 @@ class MinimalVideoPlayer extends HTMLElement {
     this._cacheDOM();
     this._bindEvents();
     this._applyAttributes();
+    this._volumeLevel = this._video.volume;
+    this._updateVolUI();
     this._showControls();
   }
 
@@ -67,12 +71,16 @@ class MinimalVideoPlayer extends HTMLElement {
   /* ------------------------------------------------------------------ */
   attributeChangedCallback(name, oldVal, newVal) {
     if (!this.shadowRoot.querySelector('video') || oldVal === newVal) return;
-    this._applyAttributes();
     
     // If source changed, reset playback state and UI
     if (name === 'src') {
       this._video.currentTime = 0;
       this._onPlayState(false);
+      
+      if (this._corsBlocked) {
+        this._corsBlocked = false;
+        this._video.setAttribute('crossorigin', 'anonymous');
+      }
       
       // Explicitly reset UI elements immediately
       this._currentTime.textContent = '0:00';
@@ -81,6 +89,8 @@ class MinimalVideoPlayer extends HTMLElement {
       this._seekFill.style.width = '0%';
       this._seekBuffer.style.width = '0%';
     }
+
+    this._applyAttributes();
 
     // If subtitle changed, reload cues
     if (name === 'subtitle') {
@@ -104,7 +114,7 @@ class MinimalVideoPlayer extends HTMLElement {
           <span class="big-play-icon">${I.play}</span>
         </button>
 
-        <video playsinline></video>
+        <video playsinline crossorigin="anonymous"></video>
 
         <!-- Controls bar -->
         <div class="controls">
@@ -127,7 +137,7 @@ class MinimalVideoPlayer extends HTMLElement {
               <span class="icon icon-volume">${I.volumeUp}</span>
             </button>
             <div class="volume-slider-wrap">
-              <input type="range" class="volume-slider" min="0" max="100" value="100" step="1" aria-label="Volume">
+              <input type="range" class="volume-slider" min="0" max="100" value="75" step="1" aria-label="Volume">
               <div class="volume-fill"></div>
             </div>
           </div>
@@ -221,14 +231,35 @@ class MinimalVideoPlayer extends HTMLElement {
 
     /* volume */
     this._volSlider.addEventListener('input', () => {
-      v.volume = this._volSlider.value / 100;
-      v.muted = v.volume === 0;
-      this._updateVolUI();
+      let val = parseFloat(this._volSlider.value);
+      let volumeLevel;
+
+      if (this._corsBlocked) {
+        volumeLevel = val / 100;
+      } else {
+        // Snap to 100% (value 75) if it is close
+        if (Math.abs(val - 75) <= 3) {
+          val = 75;
+          this._volSlider.value = 75;
+        }
+
+        // Map slider value S (0..100) to volume level V (0.0..2.0)
+        if (val <= 75) {
+          volumeLevel = val / 75;
+        } else {
+          volumeLevel = 1.0 + (val - 75) / 25;
+        }
+      }
+
+      this._setVolume(volumeLevel);
     });
     this._volBtn.addEventListener('click', () => {
-      if (v.muted || v.volume === 0) {
+      if (v.muted || this._volumeLevel === 0) {
         v.muted = false;
-        if (v.volume === 0) v.volume = 0.5;
+        if (this._volumeLevel === 0) {
+          this._setVolume(0.5);
+          return;
+        }
       } else {
         v.muted = true;
       }
@@ -256,6 +287,35 @@ class MinimalVideoPlayer extends HTMLElement {
     this._wrapper.addEventListener('dblclick', e => {
       if (e.target.closest('.controls')) return;
       this._toggleFS();
+    });
+
+    /* CORS error fallback */
+    v.addEventListener('error', () => {
+      if (v.error && v.crossOrigin === 'anonymous') {
+        console.warn("CORS restriction detected. Reverting video element to non-cors mode and disabling volume boost.");
+        v.removeAttribute('crossorigin');
+        this._corsBlocked = true;
+        if (this._volumeLevel > 1.0) {
+          this._setVolume(1.0);
+        } else {
+          this._updateVolUI();
+        }
+        
+        // Reload source without crossorigin
+        const currentTime = v.currentTime;
+        const paused = v.paused;
+        const src = this.getAttribute('src');
+        if (src) {
+          v.src = src;
+          v.load();
+          const onMetadata = () => {
+            v.currentTime = currentTime;
+            if (!paused) v.play().catch(() => {});
+            v.removeEventListener('loadedmetadata', onMetadata);
+          };
+          v.addEventListener('loadedmetadata', onMetadata);
+        }
+      }
     });
   }
 
@@ -343,20 +403,95 @@ class MinimalVideoPlayer extends HTMLElement {
   /* ------------------------------------------------------------------ */
   /*  Volume helpers                                                     */
   /* ------------------------------------------------------------------ */
+  _initAudioContext() {
+    if (this._audioCtx) {
+      if (this._audioCtx.state === 'suspended') {
+        this._audioCtx.resume();
+      }
+      return;
+    }
+    try {
+      this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      this._gainNode = this._audioCtx.createGain();
+      this._audioSource = this._audioCtx.createMediaElementSource(this._video);
+      this._audioSource.connect(this._gainNode);
+      this._gainNode.connect(this._audioCtx.destination);
+      if (this._audioCtx.state === 'suspended') {
+        this._audioCtx.resume();
+      }
+    } catch (err) {
+      console.warn("Web Audio API not supported or blocked:", err);
+    }
+  }
+
+  _setVolume(val) {
+    this._volumeLevel = Math.max(0, Math.min(2.0, val));
+    const v = this._video;
+
+    if (this._volumeLevel > 1.0) {
+      this._initAudioContext();
+      v.volume = 1.0;
+      if (this._gainNode) {
+        this._gainNode.gain.value = this._volumeLevel;
+      }
+    } else {
+      v.volume = this._volumeLevel;
+      if (this._gainNode) {
+        this._gainNode.gain.value = 1.0;
+      }
+    }
+
+    if (this._volumeLevel === 0) {
+      v.muted = true;
+    } else if (v.muted) {
+      v.muted = false;
+    }
+
+    this._updateVolUI();
+  }
+
   _updateVolUI() {
     const v = this._video;
     const I = MinimalVideoPlayer.ICONS;
-    const muted = v.muted || v.volume === 0;
+    const muted = v.muted || this._volumeLevel === 0;
     if (muted) {
       this._iconVolume.innerHTML = I.volumeOff;
-    } else if (v.volume < 0.5) {
+    } else if (this._volumeLevel < 0.5) {
       this._iconVolume.innerHTML = I.volumeDown;
     } else {
       this._iconVolume.innerHTML = I.volumeUp;
     }
-    const pct = muted ? 0 : v.volume * 100;
-    this._volSlider.value = pct;
-    this._volFill.style.width = `${pct}%`;
+
+    this._volumeGroup.classList.toggle('is-boosted', this._volumeLevel > 1.0);
+
+    // Map volume level V (0.0..2.0) to slider value S (0..100)
+    let sliderValue;
+    if (muted) {
+      sliderValue = 0;
+    } else if (this._corsBlocked) {
+      sliderValue = this._volumeLevel * 100;
+    } else if (this._volumeLevel <= 1.0) {
+      sliderValue = this._volumeLevel * 75;
+    } else {
+      sliderValue = 75 + (this._volumeLevel - 1.0) * 25;
+    }
+
+    this._volSlider.value = Math.round(sliderValue);
+    this._volFill.style.width = `${sliderValue}%`;
+
+    // Dynamic gradient coloring for the fill if boosted
+    if (sliderValue > 75 && !this._corsBlocked) {
+      const splitPct = (75 / sliderValue) * 100;
+      this._volFill.style.background = `linear-gradient(to right, var(--mvp-accent) ${splitPct}%, #ff5500 ${splitPct}%, #ff0055 100%)`;
+    } else {
+      this._volFill.style.background = '';
+    }
+
+    const displayPct = Math.round(this._volumeLevel * 100);
+    const titleText = muted ? "Muted" : `Volume: ${displayPct}%`;
+    this._volSlider.setAttribute('title', titleText);
+    this._volBtn.setAttribute('title', titleText);
+    this._volSlider.setAttribute('aria-valuenow', displayPct);
   }
 
   /* ------------------------------------------------------------------ */
@@ -515,15 +650,11 @@ class MinimalVideoPlayer extends HTMLElement {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        v.muted = false;
-        v.volume = Math.min(1, v.volume + 0.1);
-        this._updateVolUI();
+        this._setVolume(this._volumeLevel + 0.1);
         break;
       case 'ArrowDown':
         e.preventDefault();
-        v.volume = Math.max(0, v.volume - 0.1);
-        if (v.volume === 0) v.muted = true;
-        this._updateVolUI();
+        this._setVolume(this._volumeLevel - 0.1);
         break;
       case 'f':
         e.preventDefault();
@@ -535,9 +666,12 @@ class MinimalVideoPlayer extends HTMLElement {
         break;
       case 'm':
         e.preventDefault();
-        if (v.muted || v.volume === 0) {
+        if (v.muted || this._volumeLevel === 0) {
           v.muted = false;
-          if (v.volume === 0) v.volume = 0.5;
+          if (this._volumeLevel === 0) {
+            this._setVolume(0.5);
+            break;
+          }
         } else {
           v.muted = true;
         }
@@ -866,6 +1000,7 @@ class MinimalVideoPlayer extends HTMLElement {
         z-index: 1;
         width: 100%;
       }
+
 
       /* ---- Caption overlay ---- */
       .caption-overlay {
