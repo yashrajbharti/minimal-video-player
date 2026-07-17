@@ -425,7 +425,8 @@ class MinimalVideoPlayer extends HTMLElement {
   }
 
   _setVolume(val) {
-    this._volumeLevel = Math.max(0, Math.min(2.0, val));
+    const maxVolume = this._corsBlocked ? 1.0 : 2.0;
+    this._volumeLevel = Math.max(0, Math.min(maxVolume, val));
     const v = this._video;
 
     if (this._volumeLevel > 1.0) {
